@@ -61,23 +61,72 @@ void SystemClock_Config(void);
   * @retval int
   */
 int main(void) {
-HAL_Init(); // Reset of all peripherals, init the Flash and Systick
+//HAL_Init(); // Reset of all peripherals, init the Flash and Systick
 SystemClock_Config(); //Configure the system clock
 /* This example uses HAL library calls to control
 the GPIOC peripheral. You’ll be redoing this code
 with hardware register access. */
-__HAL_RCC_GPIOC_CLK_ENABLE(); // Enable the GPIOC clock in the RCC
+	
+//__HAL_RCC_GPIOC_CLK_ENABLE(); // Enable the GPIOC clock in the RCC
+RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable the GPIOC clock in the RCC
+RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // Enable the GPIOA clock in the RCC
+	
 // Set up a configuration struct to pass to the initialization function
-GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9,
-GPIO_MODE_OUTPUT_PP,
-GPIO_SPEED_FREQ_LOW,
-GPIO_NOPULL};
-HAL_GPIO_Init(GPIOC, &initStr); // Initialize pins PC8 & PC9
-HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC8 high
+//GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9,
+//GPIO_MODE_OUTPUT_PP,
+//GPIO_SPEED_FREQ_LOW,
+//GPIO_NOPULL};
+
+
+GPIOC->MODER |= (1 << 12);
+GPIOC->MODER |= (1 << 14);
+	
+GPIOA->MODER &= ~(1 << 1);
+GPIOA->MODER &= ~(1 << 0);
+
+
+GPIOC->OTYPER &= ~(1 << 6);
+GPIOC->OTYPER &= ~(1 << 7);
+
+
+GPIOC->OSPEEDR &= ~(1 << 12);
+GPIOC->OSPEEDR &= ~(1 << 14);
+
+GPIOA->OSPEEDR &= ~(1 << 0);
+
+GPIOC->PUPDR &= ~((1 << 12) | (1 << 13));
+GPIOC->PUPDR &= ~((1 << 14) | (1 << 15));
+
+GPIOA->PUPDR |= (1 << 1);
+GPIOA->PUPDR &= ~(1 << 0);
+
+//HAL_GPIO_Init(GPIOC, &initStr); // Initialize pins PC8 & PC9
+//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC8 high
+
+GPIOC->ODR |= (1 << 7);
+GPIOC->ODR &= ~(1 << 6);
+
+
+uint32_t debouncer = 0;
 while (1) {
-HAL_Delay(200); // Delay 200ms
+HAL_Delay(2); // Delay 200ms
 // Toggle the output state of both PC8 and PC9
-HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8 | GPIO_PIN_9);
+	
+//GPIOC->ODR ^= GPIO_ODR_6 | GPIO_ODR_7;
+	
+//	Memory-Mapped Peripherals and the GPIO 35
+
+debouncer = (debouncer << 1); // Always shift every loop iteration
+if (GPIOA->IDR & 0x1) { // If input signal is set/high
+debouncer |= 0x01; // Set lowest bit of bit-vector
+}
+
+if (debouncer == 0x7FFFFFFF) {
+// This code triggers only once when transitioning to steady high!
+	GPIOC->ODR ^= GPIO_ODR_6 | GPIO_ODR_7;
+}
+
+//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8 | GPIO_PIN_9);
 }
 }
 
