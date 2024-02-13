@@ -150,7 +150,9 @@ int main(void)
 	NVIC_EnableIRQ(EXTI0_1_IRQn);
 	
 	// Set the priority high
-	NVIC_SetPriority(EXTI0_1_IRQn, 1);
+	NVIC_SetPriority(EXTI0_1_IRQn, 3);
+	
+	NVIC_SetPriority(SysTick_IRQn, 2);
 
   /* Infinite loop */
   while (1)
