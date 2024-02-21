@@ -58,6 +58,7 @@ void SystemClock_Config(void);
 
 volatile int c1 = 0;
 
+/*
 void EXTI0_1_IRQHandler(){
 	
 	GPIOC->ODR ^= GPIO_ODR_8 | GPIO_ODR_9;
@@ -71,14 +72,24 @@ void EXTI0_1_IRQHandler(){
 	EXTI->PR |= (1 << 0);
 	c1 = 0;
 	
-/* Part 1
+ Part 1
 	
 // Toggle LEDs for green and orange
 	GPIOC->ODR ^= GPIO_ODR_8 | GPIO_ODR_9;
 // Reset Pending Register
 	EXTI->PR |= (1 << 0);
-	*/
+	
 }
+*/
+
+
+void TIM2_IRQHandler(){
+	//toggle LEDs
+	GPIOC->ODR ^= GPIO_ODR_8 | GPIO_ODR_9;
+	// Reset pending flag
+	TIM2->SR &= ~TIM_SR_UIF;
+}
+
 
 /**
   * @brief  The application entry point.
@@ -102,64 +113,91 @@ int main(void)
 
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // Enable the GPIOC clock in the RCC
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // Enable the GPIOA clock in the RCC
-	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; // Enable SYSCONFIG clock
 	
-	GPIOC->MODER |= (1 << 12);
-	GPIOC->MODER |= (1 << 18);
-	GPIOC->MODER |= (1 << 14);
-	GPIOC->MODER |= (1 << 16);
+	//Enable Timer 2 peripheral
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+	//Enable Timer 3 peripheral
+	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
-	GPIOA->MODER &= ~(1 << 1);
-	GPIOA->MODER &= ~(1 << 0);
+	// Set the PSC and ARR
+	TIM2->PSC = 7999;
+	TIM2->ARR = 250;
+	
+	// Generate an interrupt on the UEV event (4Hz)
+	TIM2->EGR |= TIM_EGR_TG;
+	TIM2->DIER |= TIM_DIER_UIE;
+	
+	// Enabling Timer 2 control register to start
+	//TIM2->CR1 |= TIM_CR1_CEN; Might not need
+	
+	// Enabling the interrupt handler for TIM2
+	NVIC_EnableIRQ(TIM2_IRQn);
+	
+		// Set the PSC and ARR (PWM of TIM3)
+	TIM3->PSC = 79;
+	TIM3->ARR = 125;
+	
+	// Set the bits [6:4] for Capture/Compare Mode Register (...110...) MIGHT NOT NEED
+	//TIM3->CCMR1 |= (1 << 6);
+	//TIM3->CCMR1 |= (1 << 5);
+	//TIM3->CCMR1 &= ~(1 << 4);
+	/*
+	//CCMR1 CC1S [1:0] bits set to output
+	TIM3->CCMR1 &= ~((1 << 1) | (1 << 0));
+	
+	//CCMR1 CC2S [9:8] bits set to output
+	TIM3->CCMR1 &= ~((1 << 9) | (1 << 8));
+	*/
+	// Clear the bits of OC1M
+	//TIM3->CCMR1 &= ~(TIM_CCMR1_OC1M_0 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
+	
+	// Set output channel 1 to PWM mode 2
+	TIM3->CCMR1 |= (TIM_CCMR1_OC1M_0 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
 
-	GPIOC->OTYPER &= ~(1 << 6);
-	GPIOC->OTYPER &= ~(1 << 9);
-	GPIOC->OTYPER &= ~(1 << 7);
-	GPIOC->OTYPER &= ~(1 << 8);
+	
+	// Set output channel 2 to PWM mode 1
+	TIM3->CCMR1 |= (TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2);
 
-	GPIOC->OSPEEDR &= ~(1 << 12);
-	GPIOC->OSPEEDR &= ~(1 << 18);
-	GPIOC->OSPEEDR &= ~(1 << 14);
-	GPIOC->OSPEEDR &= ~(1 << 16);
-	
-	GPIOA->OSPEEDR &= ~(1 << 0);
-
-	GPIOC->PUPDR &= ~((1 << 12) | (1 << 13));
-	GPIOC->PUPDR &= ~((1 << 18) | (1 << 19));
-	GPIOC->PUPDR &= ~((1 << 16) | (1 << 17));
-	GPIOC->PUPDR &= ~((1 << 14) | (1 << 15));
 	
 	
-	GPIOA->PUPDR |= (1 << 1);
-	GPIOA->PUPDR &= ~(1 << 0);
-
-	GPIOC->ODR |= (1 << 9);
-	GPIOC->ODR &= ~(1 << 6);
+	// Set the output compare preload for both channels
+	TIM3->CCMR1 |= TIM_CCMR1_OC2PE;
+	TIM3->CCMR1 |= TIM_CCMR1_OC1PE;
 	
-// Connect PA0 to EXTI0
-	SYSCFG->CFGR1 &= ~((1 << 2) | (1 << 1) | (1 << 0));
-
-// Unmask
-	EXTI->IMR |= (1 << 0);
+	// Set the output enable for both channels in CCER
+	TIM3->CCER |= TIM_CCER_CC1E;
+	TIM3->CCER |= TIM_CCER_CC2E;
 	
-// Rising edge trigger
-	EXTI->RTSR |= (1 << 0);
+	// Set CCRx for both channels to 20% of ARR
+	TIM3->CCR1 = 25;
+	TIM3->CCR2 = 25;
 	
-	SYSCFG->EXTICR[0] &= ~((1 << 2) | (1 << 1) | (1 << 0));
+//	TIM3->CCR1 = 50;
+//	TIM3->CCR2 = 25;
 	
-	NVIC_EnableIRQ(EXTI0_1_IRQn);
+// Configuring Pin Alternate functions section
+	// Set PC6/7 to Alternate MODER
+	GPIOC->MODER |= GPIO_MODER_MODER6_1;
+	GPIOC->MODER |= GPIO_MODER_MODER7_1;
 	
-	// Set the priority high
-	NVIC_SetPriority(EXTI0_1_IRQn, 1);
+	// Setting PC8/9 to generic output MODER
+	GPIOC->MODER |= GPIO_MODER_MODER8_0;
+	GPIOC->MODER |= GPIO_MODER_MODER9_0;
 	
-	NVIC_SetPriority(SysTick_IRQn, 2);
+	GPIOC->ODR |= GPIO_ODR_9;
+	
+	// Start TIM2
+	TIM2->CR1 |= TIM_CR1_CEN;
+	// Start TIM3
+	TIM3->CR1 |= TIM_CR1_CEN;
 
   /* Infinite loop */
   while (1)
   {
-		HAL_Delay(500); // Delay 500ms
+	//	HAL_Delay(500); // Delay 500ms
 		
-		GPIOC->ODR ^= GPIO_ODR_6;
+//		GPIOC->ODR ^= GPIO_ODR_6;
   }
 
 }
