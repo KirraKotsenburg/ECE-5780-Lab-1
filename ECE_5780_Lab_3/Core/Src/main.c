@@ -170,10 +170,10 @@ int main(void)
 	TIM3->CCER |= TIM_CCER_CC2E;
 	
 	// Set CCRx for both channels to 20% of ARR
-	TIM3->CCR1 = 25;
-	TIM3->CCR2 = 25;
+	TIM3->CCR1 = 123;
+	TIM3->CCR2 = 123;
 	
-//	TIM3->CCR1 = 50;
+//	TIM3->CCR1 = 25;
 //	TIM3->CCR2 = 25;
 	
 // Configuring Pin Alternate functions section
