@@ -110,6 +110,11 @@ int main(void)
 	// Enable the USART
 	USART3->CR1 |= USART_CR1_UE;
 
+	// Enable the Receive not empty interrupt
+	USART3->CR1 |= USART_CR1_RXNEIE;
+	
+	//Set the priority
+	NVIC_SetPriority(USART3_4_IRQn, 1);
 	
 	//Enabling pins 8 and 9 (green and orange)
 	GPIO_InitTypeDef initc89 = {GPIO_PIN_8 | GPIO_PIN_9, GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_HIGH,GPIO_NOPULL};
@@ -119,10 +124,64 @@ int main(void)
 	GPIO_InitTypeDef initc67 = {GPIO_PIN_6 | GPIO_PIN_7, GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_HIGH,GPIO_NOPULL};
   HAL_GPIO_Init(GPIOC, &initc67);
 	
-	
-	
   while (1)
   {
+		// Part 2
+		char color = USART3_ReadChar();
+		
+		char num = USART3_ReadChar();
+		
+		if((color == 'r') | (num == 'R')){
+				if(num == '0'){
+					GPIOC->ODR &= ~GPIO_ODR_6;
+				}else if(num == '1'){
+					GPIOC->ODR |= GPIO_ODR_6;
+				}else if(num == '2'){
+					GPIOC->ODR ^= GPIO_ODR_6;
+				}else{
+					USART3_SendString("Error: Unrecognized input\n\n");
+				}
+				
+		}else if((color == 'g') | (num == 'G')){
+				if(num == '0'){
+					GPIOC->ODR &= ~GPIO_ODR_9;
+				}else if(num == '1'){
+					GPIOC->ODR |= GPIO_ODR_9;
+				}else if(num == '2'){
+					GPIOC->ODR ^= GPIO_ODR_9;
+				}else{
+					USART3_SendString("Error: Unrecognized input\n\n");
+				}
+			}else if((color == 'b') | (num == 'B')){
+				if(num == '0'){
+					GPIOC->ODR &= ~GPIO_ODR_7;
+				}else if(num == '1'){
+					GPIOC->ODR |= GPIO_ODR_7;
+				}else if(num == '2'){
+					GPIOC->ODR ^= GPIO_ODR_7;
+				}else{
+					USART3_SendString("Error: Unrecognized input\n\n");
+				}
+			}else if((color == 'o') | (num == 'O')){
+				if(num == '0'){
+					GPIOC->ODR &= ~GPIO_ODR_8;
+				}else if(num == '1'){
+					GPIOC->ODR |= GPIO_ODR_8;
+				}else if(num == '2'){
+					GPIOC->ODR ^= GPIO_ODR_8;
+				}else{
+					USART3_SendString("Error: Unrecognized input\n\n");
+				}
+				
+		}else{
+			USART3_SendString("Error: Unrecognized command.\n\n");
+		  USART3_SendString("Error: Unrecognised action of LED.");
+			
+			}
+				
+		
+		
+		/* // Part 1
     char ch = USART3_ReadChar();  // Read a character from USART3
     // Process the received character
 		
@@ -136,10 +195,22 @@ int main(void)
 			GPIOC->ODR ^= GPIO_ODR_7;
 		else
 			USART3_SendString("Error: Unrecognized command\n\n"); 
+		*/
   }
+
   /* USER CODE END 3 */
 }
 
+/*
+void USART3_4_IRQnHandler(){
+	
+	receiveRegVal = USART3->RDR;
+	
+	USART3->CR1 |= USART_CR1_RE;
+	
+	newData = 1;
+}
+*/
 /**
   * @brief System Clock Configuration
   * @retval None

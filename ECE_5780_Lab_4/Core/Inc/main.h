@@ -43,6 +43,8 @@ extern "C" {
 /* USER CODE BEGIN EC */
 
 /* USER CODE END EC */
+//extern volatile char receiveRegVal;
+//extern volatile char newData;
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
