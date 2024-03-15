@@ -78,7 +78,7 @@ int main(void)
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	// Set I2C in RCC
-	RCC->APB1ENR |= RCC_APB1ENR_I2C1EN;
+	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
 	
 	  /* Configure the system clock */
   SystemClock_Config();
@@ -153,22 +153,19 @@ int main(void)
 	I2C2->CR2 |= (1 << 13);
 	
 	// Wait till flags are set
-	while(!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF))){
-		GPIOC->ODR |= GPIO_ODR_8;
-	}
-	
+	while(!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF))){}
 	
 	
 	// Check if NACKF is set
 	if((I2C2->CR2 & I2C_ISR_NACKF)){
-		GPIOC->ODR |= GPIO_ODR_6;
+		GPIOC->ODR ^= GPIO_ODR_6; // red
 	}
 	// Set the TXDR reg to WHO_AM_I address
 	I2C2->TXDR |= 0xF;
 	
 	// Wait for transfer complete flag
 	while(!(I2C2->ISR & I2C_ISR_TC)){
-		GPIOC->ODR |= GPIO_ODR_9;
+		GPIOC->ODR ^= GPIO_ODR_9; // green
 	}
 	
 // Reset for a read instead of write
@@ -182,23 +179,21 @@ int main(void)
 	I2C2->CR2 |= (1 << 10);
 	
 	// Set start bit
-	I2C2->CR2 |= (1 << 13);
+	I2C2->CR2 |= I2C_CR2_START;
 	
 	// Wait till flags are set
-	while(!(I2C2->CR2 & I2C_ISR_NACKF) || !(I2C2->CR2 & I2C_ISR_RXNE)){
-		
-	}
+	while (!(I2C2->ISR & (I2C_ISR_RXNE | I2C_ISR_NACKF))){}
 	
 	// Check if NACKF is set
 	if((I2C2->CR2 & I2C_ISR_NACKF)){
-		GPIOC->ODR |= GPIO_ODR_6;
+		GPIOC->ODR ^= GPIO_ODR_6; // red
 	}
 	
 	// Check RXDR
 	if((I2C2->RXDR & 0xFF) == 0xD3){
-		GPIOC->ODR |= GPIO_ODR_7;
+		GPIOC->ODR ^= GPIO_ODR_7; // blue
 	} else{
-		GPIOC->ODR |= GPIO_ODR_6;
+		GPIOC->ODR ^= GPIO_ODR_6; // red
 	}
 	
 	// Set the stop bit
