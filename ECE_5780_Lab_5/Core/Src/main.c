@@ -41,12 +41,25 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+#define L3GD20 0x69
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+
+void I2C_Config();
+
+void I2C_WriteReg(uint16_t devAddr, uint8_t regAddr, uint8_t data);
+
+int8_t I2C_ReadReg(uint16_t devAddr);
+
+void I2C_SetRegAddr(uint16_t devAddr, uint8_t regAddr);
+
+
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -70,9 +83,6 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-
-
 	
 	// Enable GPIOB and GPIOC
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
@@ -83,28 +93,92 @@ int main(void)
 	  /* Configure the system clock */
   SystemClock_Config();
 	
-	// Set up LED
+	// Set up all LEDs
 	GPIO_InitTypeDef initc89 = {GPIO_PIN_8 | GPIO_PIN_9, GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_HIGH,GPIO_NOPULL};
 	HAL_GPIO_Init(GPIOC, &initc89);
-	// Set up LED
 	GPIO_InitTypeDef initc67 = {GPIO_PIN_6 | GPIO_PIN_7, GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_HIGH,GPIO_NOPULL};
 	HAL_GPIO_Init(GPIOC, &initc67);
 	
 	
-	// Set PB11 and PB13 to alternate function mode
-//	GPIOB->MODER = (GPIOB->MODER & ~(GPIO_MODER_MODER11 | GPIO_MODER_MODER13))
-//																		| GPIO_MODER_MODER11_1 | GPIO_MODER_MODER13_1;
+	// Configure the I2C
+	I2C_Config();
 	
-		// Set PB14 PB11 and PB13 to output mode
-//	GPIOB->MODER |= (1 << 28); // for 14
+	int8_t normal_mode = 0xB;
+	int8_t ctrl_reg1_addr = 0x20;
+	I2C_WriteReg(L3GD20, ctrl_reg1_addr, normal_mode); 
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+				I2C_SetRegAddr(L3GD20, 0x28); 
+		int8_t x_low = I2C_ReadReg(L3GD20); 
+		
+		char xl_str[] = "x_low: ";
+
+		I2C_SetRegAddr(L3GD20, 0x29);
+		int8_t x_high = I2C_ReadReg(L3GD20); 
+		
+		char xh_str[] = "x_high: ";
+
+		
+		int16_t x_data = ((int16_t)x_high << 8) | (uint8_t)x_low;
+	
+		char xd_str[] = "X: ";
+		
+		I2C_SetRegAddr(L3GD20, 0x2A); 
+		int8_t y_low = I2C_ReadReg(L3GD20); 
+				
+		char yl_str[] = "y_low: ";
+
+		
+		I2C_SetRegAddr(L3GD20, 0x2B);
+		int8_t y_high = I2C_ReadReg(L3GD20);
+		
+		char yh_str[] = "y_high: ";
+
+		
+		int16_t y_data = ((int16_t)y_high << 8) | (uint8_t)y_low;
+		
+		char y_str[] = "Y: ";
+
+	
+		int32_t threshold = 1000;
+		
+		GPIOC->ODR &= ~(GPIO_ODR_7 | GPIO_ODR_6 | GPIO_ODR_8 | GPIO_ODR_9); // Reset the ODR bits for LEDs
+
+		if (y_data > threshold) {
+				GPIOC->ODR |= GPIO_ODR_6; // Red LED for positive Y 
+		} else if (y_data < -threshold) {
+				GPIOC->ODR |= GPIO_ODR_7; // Blue LED for negative Y 
+		}
+
+		if (x_data > threshold) {
+				GPIOC->ODR |= GPIO_ODR_9; // Green LED for positive X
+		} else if (x_data < -threshold) {
+				GPIOC->ODR |= GPIO_ODR_8; // Orange LED for negative X
+		}
+		
+		HAL_Delay(1000);
+		
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/* Function for setting up I2C. Sets correct modes, alternate functions, and enabling bit*/
+void I2C_Config() 
+{
+	// Set PB14 PB11 and PB13 to output mode
 		GPIOB->MODER |= (1<<23) | (1<<27) | (1<<28);
     GPIOB->MODER &= ~((1<<22)| (1<<26) | (1<<29));
 	
-	// Set PC0 to output mode
+		// Set PC0 to output mode
 	GPIOC->MODER |= (1 << 0);
 	GPIOC->MODER &= ~(1 << 1);
 
-	
 	//Set PB11 as open drain
 	GPIOB->OTYPER |= (1 << 11);
 	// Set PB13 as open drain
@@ -113,7 +187,6 @@ int main(void)
 	// Select alternate function mode I2C2_SDA and I2C2_SCL for PB11 and PB13
 	GPIOB->AFR[1] |= (1 << GPIO_AFRH_AFSEL11_Pos);
 	GPIOB->AFR[1] |= (5 << GPIO_AFRH_AFSEL13_Pos);
-	
 	
 	// Set PB14 to push pull output
 	GPIOB->OTYPER &= ~(1 << 14);
@@ -125,9 +198,8 @@ int main(void)
 	
 	// Set PC0 to high
 	GPIOC->ODR |= (1 << 0);
-
-
-	// Set TIMINGR register to correct values
+	
+		// Set TIMINGR register to correct values
 	I2C2->TIMINGR |= (1 << 28); // Prescaler
 	I2C2->TIMINGR |= (13 << 0); // SCLL
 	I2C2->TIMINGR |= (0xF << 8); // SCLH
@@ -137,14 +209,19 @@ int main(void)
 	// Enable using PE in CR1 reg
 	I2C2->CR1 |= (1 << 0);
 	
-	// Clear slave address
+}
+
+/* I2C write register function*/
+void I2C_WriteReg(uint16_t devAddr, uint8_t regAddr, uint8_t data) 
+{
+		// Clear slave address
 	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));
 	
 	// Slave address
-	I2C2->CR2 |= (0x69 << 1);
+	I2C2->CR2 |= (devAddr << 1);
 	
-	// Set num bites to 1
-	I2C2->CR2 |= (1 << 16);
+	// Set num bytes to 1
+	I2C2->CR2 |= (1 << 16); // maybe do 0x2
 	
 	// Set RD_WR to write operation
 	I2C2->CR2 &= ~(1 << 10);
@@ -153,26 +230,42 @@ int main(void)
 	I2C2->CR2 |= (1 << 13);
 	
 	// Wait till flags are set
-	while(!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF))){}
-	
+	while(!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF))){
+	}
 	
 	// Check if NACKF is set
-	if((I2C2->CR2 & I2C_ISR_NACKF)){
-		GPIOC->ODR ^= GPIO_ODR_6; // red
+	if((I2C2->ISR & I2C_ISR_NACKF)){
+		//GPIOC->ODR ^= GPIO_ODR_6; // red if error
 	}
 	// Set the TXDR reg to WHO_AM_I address
-	I2C2->TXDR |= 0xF;
+	I2C2->TXDR |= regAddr;
 	
 	// Wait for transfer complete flag
-	while(!(I2C2->ISR & I2C_ISR_TC)){
-		GPIOC->ODR ^= GPIO_ODR_9; // green
+	while (!(I2C2->ISR & I2C_ISR_TXIS)) {
+		//GPIOC->ODR ^= GPIO_ODR_9; // green
+		}
+		
+	// Write data into the TXDR 	
+	I2C2->TXDR = data;
+		
+	// Wait until TC flag set - transfer complete
+	while (!(I2C2->ISR & I2C_ISR_TC)) {
 	}
 	
-// Reset for a read instead of write
+}
+
+/* I2C read regicter function*/
+int8_t I2C_ReadReg(uint16_t devAddr) 
+{
+	// Reset for a read instead of write
 	// Slave address
-	I2C2->CR2 |= (0x69 << 1);
+	I2C2->CR2 |= 0;
+	int8_t data = 0;
 	
-	// Set num bites to 1
+	// Use SADD[7:1] bit field in CR2 register to set slave address to L3GD20
+	I2C2->CR2 |= (devAddr << 1);
+	
+	// Set num bytes to 1
 	I2C2->CR2 |= (1 << 16);
 	
 	// Set RD_WR to read operation
@@ -185,31 +278,57 @@ int main(void)
 	while (!(I2C2->ISR & (I2C_ISR_RXNE | I2C_ISR_NACKF))){}
 	
 	// Check if NACKF is set
-	if((I2C2->CR2 & I2C_ISR_NACKF)){
-		GPIOC->ODR ^= GPIO_ODR_6; // red
+	if((I2C2->ISR & I2C_ISR_NACKF)){
+		//GPIOC->ODR ^= GPIO_ODR_6; // red if error
+	}	
+		
+	// Wait for TC flag set
+	while (!(I2C2->ISR & I2C_ISR_TC)) {
+		//GPIOC->ODR ^= GPIO_ODR_9; // green
 	}
+		
+	// Read contents of RXDR register and return data - remember it is 1 byte at a time
+	data = I2C2->RXDR;
 	
-	// Check RXDR
-	if((I2C2->RXDR & 0xFF) == 0xD3){
-		GPIOC->ODR ^= GPIO_ODR_7; // blue
-	} else{
-		GPIOC->ODR ^= GPIO_ODR_6; // red
-	}
-	
-	// Set the stop bit
-	I2C2->CR2 |= (1 << 14);
-
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+	return data;
 }
+
+/* Function for setting the register address of I2C*/
+void I2C_SetRegAddr(uint16_t devAddr, uint8_t regAddr)
+{
+	// Clear slave address
+	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));
+	
+	// Use SADD[7:1] bit field in CR2 register to set slave address to addr
+	I2C2->CR2 |= (devAddr << 1);
+	
+	// Num bytes
+	I2C2->CR2 |= (1 << 16);
+	
+	// Set RD_WR to 0 for write
+	I2C2->CR2 &= ~(1 << 10);
+	
+	// Set START bit to begin the address frame
+	I2C2->CR2 |= I2C_CR2_START;
+	
+	// While TXIS or NACKF flags not set wait
+	while (!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF))) {
+	}
+		
+	// Check if NACK set
+	if (I2C2->ISR & I2C_ISR_NACKF){
+		//GPIOC->ODR |= GPIO_ODR_6; // red if error
+	}
+	
+	// Write data into the TXDR 
+	I2C2->TXDR = regAddr;
+		
+	// Wait until TC flag set - transfer complete
+	while (!(I2C2->ISR & I2C_ISR_TC)) {
+		//GPIOC->ODR ^= GPIO_ODR_9; // green
+	}
+}
+
 
 /**
   * @brief System Clock Configuration
@@ -245,6 +364,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
+
 
 /* USER CODE BEGIN 4 */
 
