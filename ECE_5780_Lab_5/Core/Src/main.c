@@ -81,8 +81,8 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Configure the system clock */
+  SystemClock_Config();
 	
 	// Enable GPIOB and GPIOC
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
@@ -90,8 +90,6 @@ int main(void)
 	// Set I2C in RCC
 	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
 	
-	  /* Configure the system clock */
-  SystemClock_Config();
 	
 	// Set up all LEDs
 	GPIO_InitTypeDef initc89 = {GPIO_PIN_8 | GPIO_PIN_9, GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_HIGH,GPIO_NOPULL};
@@ -102,10 +100,11 @@ int main(void)
 	
 	// Configure the I2C
 	I2C_Config();
-	
+
 	int8_t normal_mode = 0xB;
 	int8_t ctrl_reg1_addr = 0x20;
 	I2C_WriteReg(L3GD20, ctrl_reg1_addr, normal_mode); 
+	
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -215,26 +214,26 @@ void I2C_Config()
 void I2C_WriteReg(uint16_t devAddr, uint8_t regAddr, uint8_t data) 
 {
 		// Clear slave address
-	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));
+	I2C2->CR2 = 0;
 	
 	// Slave address
 	I2C2->CR2 |= (devAddr << 1);
 	
 	// Set num bytes to 1
-	I2C2->CR2 |= (1 << 16); // maybe do 0x2
+	I2C2->CR2 |= (0x2 << 16); // maybe do 0x2
 	
 	// Set RD_WR to write operation
 	I2C2->CR2 &= ~(1 << 10);
 	
 	// Set start bit
-	I2C2->CR2 |= (1 << 13);
+	I2C2->CR2 |= I2C_CR2_START;
 	
 	// Wait till flags are set
-	while(!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF))){
+	while (!(I2C2->ISR & (I2C_ISR_TXIS | I2C_ISR_NACKF))){
 	}
 	
 	// Check if NACKF is set
-	if((I2C2->ISR & I2C_ISR_NACKF)){
+	if(I2C2->ISR & I2C_ISR_NACKF){
 		//GPIOC->ODR ^= GPIO_ODR_6; // red if error
 	}
 	// Set the TXDR reg to WHO_AM_I address
@@ -251,7 +250,7 @@ void I2C_WriteReg(uint16_t devAddr, uint8_t regAddr, uint8_t data)
 	// Wait until TC flag set - transfer complete
 	while (!(I2C2->ISR & I2C_ISR_TC)) {
 	}
-	
+		
 }
 
 /* I2C read regicter function*/
