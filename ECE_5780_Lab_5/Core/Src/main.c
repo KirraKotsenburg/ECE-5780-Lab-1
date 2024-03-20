@@ -111,42 +111,31 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+		//Read and save value of X and Y axes
 				I2C_SetRegAddr(L3GD20, 0x28); 
 		int8_t x_low = I2C_ReadReg(L3GD20); 
-		
-		char xl_str[] = "x_low: ";
 
 		I2C_SetRegAddr(L3GD20, 0x29);
 		int8_t x_high = I2C_ReadReg(L3GD20); 
 		
-		char xh_str[] = "x_high: ";
-
-		
+		// 16 bit measured value for X
 		int16_t x_data = ((int16_t)x_high << 8) | (uint8_t)x_low;
-	
-		char xd_str[] = "X: ";
+
 		
 		I2C_SetRegAddr(L3GD20, 0x2A); 
 		int8_t y_low = I2C_ReadReg(L3GD20); 
-				
-		char yl_str[] = "y_low: ";
 
 		
 		I2C_SetRegAddr(L3GD20, 0x2B);
 		int8_t y_high = I2C_ReadReg(L3GD20);
-		
-		char yh_str[] = "y_high: ";
-
-		
+	
+		// 16 bit measured value for Y
 		int16_t y_data = ((int16_t)y_high << 8) | (uint8_t)y_low;
-		
-		char y_str[] = "Y: ";
-
 	
 		int32_t threshold = 1000;
 		
-		GPIOC->ODR &= ~(GPIO_ODR_7 | GPIO_ODR_6 | GPIO_ODR_8 | GPIO_ODR_9); // Reset the ODR bits for LEDs
-
+		GPIOC->ODR &= ~(GPIO_ODR_7 | GPIO_ODR_6 | GPIO_ODR_8 | GPIO_ODR_9); // Reset the LEDs
+		// Set the LEDs for thilting the gyro
 		if (y_data > threshold) {
 				GPIOC->ODR |= GPIO_ODR_6; // Red LED for positive Y 
 		} else if (y_data < -threshold) {
