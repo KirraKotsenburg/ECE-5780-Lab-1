@@ -175,7 +175,7 @@ void init_LEDS(){
 }
 /* Sets PC0 to analog mode for ADC_IN */
 void init_GPIO_Analog(){
-	  // Enable GPIOC
+	  // Enable GPIOC clock
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 	
 		// Set PC0 to analog mode
@@ -224,8 +224,9 @@ void config_ADC(){
 
 /* Configure the DAC*/
 void config_DAC(){
-	// Prepare GPIOA
+	// Enable GPIOA clock
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+	// Enable DAC clock
 	RCC->APB1ENR |= RCC_APB1ENR_DACEN;
 	
 	// Set to analog mode
@@ -237,7 +238,6 @@ void config_DAC(){
 	
 	// Set channel 1 to software trigger (111 for bits 5:3)
 	DAC->CR |= (1 << 5) | (1 << 4) | (1 << 3);
-	//DAC->SWTRIGR |= (1 << 0);
 	
 	// Enable channel 1 of DAC
 	DAC->CR |= (1 << 0);
