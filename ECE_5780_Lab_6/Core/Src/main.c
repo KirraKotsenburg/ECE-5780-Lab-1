@@ -54,6 +54,8 @@ void init_GPIO_Analog();
 
 void config_ADC();
 
+void config_DAC();
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -99,8 +101,16 @@ int main(void)
 	//Configure and start the ADC
 	config_ADC();
 
+	//Configure DAC
+	config_DAC();
 	
-
+	// Sine Wave: 8-bit, 32 samples/cycle
+	const uint8_t sine_table[32] = {127,151,175,197,216,232,244,251,254,251,244,
+	232,216,197,175,151,127,102,78,56,37,21,9,2,0,2,9,21,37,56,78,102};
+	
+		
+		
+	uint8_t index = 0;
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -113,10 +123,43 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	if(ADC->DR > somevalue){
-		GPIOC->ODR ^= GPIO_ODR_6;
+		HAL_Delay(1); // delay for 1ms between samples
+		
+	/*	Part 1
+	if(ADC1->DR > 20){
+		GPIOC->ODR |= GPIO_ODR_6;
+	} else{ // For if a voltage drops below threshold
+		GPIOC->ODR &= ~GPIO_ODR_6; // red
 	}
 	
+		if(ADC1->DR > 100){
+			GPIOC->ODR ^= GPIO_ODR_7;
+	} else{ // For if a voltage drops below threshold
+			GPIOC->ODR &= ~GPIO_ODR_7; //
+	}
+	
+		if(ADC1->DR > 170){
+			GPIOC->ODR |= GPIO_ODR_8;
+	} else{ // For if a voltage drops below threshold
+			GPIOC->ODR &= ~GPIO_ODR_8;
+	}
+	
+		if(ADC1->DR > 230){
+			GPIOC->ODR |= GPIO_ODR_9;
+	} else{ // For if a voltage drops below threshold
+			GPIOC->ODR &= ~GPIO_ODR_9;
+	}
+	*/
+	// Set up DAC data into register
+	DAC->DHR8R1 = sine_table[index];
+	
+	if (index == 31){
+		index = 0;
+	}else{
+			// Increment the index of table
+		index = index + 1;
+	}
+
 	
     /* USER CODE BEGIN 3 */
   }
@@ -137,6 +180,8 @@ void init_GPIO_Analog(){
 	
 		// Set PC0 to analog mode
 	GPIOC->MODER |= (1 << 1) | (1 << 0);
+	// No pull up or down
+	GPIOC->PUPDR &= ~(1 << 0);
 	
 }
 /* Configure the ADC */
@@ -174,6 +219,29 @@ void config_ADC(){
 	
 	//ADC start 
 	ADC1->CR |= (1 << 2);
+	
+}
+
+/* Configure the DAC*/
+void config_DAC(){
+	// Prepare GPIOA
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+	RCC->APB1ENR |= RCC_APB1ENR_DACEN;
+	
+	// Set to analog mode
+	GPIOA->MODER |= (1 << 9) | (1 << 8);
+	
+	// No pull up or down
+	GPIOA->PUPDR &= ~((1 << 9) |(1 << 8));
+	
+	
+	// Set channel 1 to software trigger (111 for bits 5:3)
+	DAC->CR |= (1 << 5) | (1 << 4) | (1 << 3);
+	//DAC->SWTRIGR |= (1 << 0);
+	
+	// Enable channel 1 of DAC
+	DAC->CR |= (1 << 0);
+	
 	
 }
 
