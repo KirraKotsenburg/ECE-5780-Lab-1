@@ -161,7 +161,7 @@ void PI_update(void) {
     /// TODO: calculate error signal and write to "error" variable
 		// rpm = (frequency*60)/64
 	  // frequency of interrupts 22.22 Hz
-		error = target_rpm*2 - motor_speed;
+		error = (target_rpm*2) - motor_speed;
     
     /* Hint: Remember that your calculated motor speed may not be directly in RPM!
      *       You will need to convert the target or encoder speeds to the same units.
@@ -171,7 +171,7 @@ void PI_update(void) {
     
     
     /// TODO: Calculate integral portion of PI controller, write to "error_integral" variable
-		error_integral += error;
+		error_integral += error + error_integral;
     
     /// TODO: Clamp the value of the integral to a limited positive range
 		if(error_integral < 0)
@@ -187,7 +187,7 @@ void PI_update(void) {
     
     /// TODO: Calculate proportional portion, add integral and write to "output" variable
     
-    int16_t output = Kp*error + Ki*error_integral; // Change this!
+    int16_t output = (Kp*error) + (Ki*error_integral); // Change here
     
     /* Because the calculated values for the PI controller are significantly larger than 
      * the allowable range for duty cycle, you'll need to divide the result down into 
