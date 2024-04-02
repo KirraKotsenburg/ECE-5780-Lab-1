@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>ECE_5780_Lab_6</TargetName>
+      <TargetName>ECE 5780 Lab 7</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pCCUsed>6210000::V6.21::ARMCLANG</pCCUsed>
@@ -48,8 +48,8 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>ECE_5780_Lab_6\</OutputDirectory>
-          <OutputName>ECE_5780_Lab_6</OutputName>
+          <OutputDirectory>ECE 5780 Lab 7\</OutputDirectory>
+          <OutputName>ECE 5780 Lab 7</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
@@ -409,6 +409,11 @@
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f0xx_hal_msp.c</FilePath>
             </File>
+            <File>
+              <FileName>motor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\motor.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -514,7 +519,7 @@
       <component Cclass="CMSIS" Cgroup="CORE" Cvendor="ARM" Cversion="5.6.0" condition="ARMv6_7_8-M Device">
         <package name="CMSIS" schemaVersion="1.7.7" url="http://www.keil.com/pack/" vendor="ARM" version="5.9.0"/>
         <targetInfos>
-          <targetInfo name="ECE_5780_Lab_6"/>
+          <targetInfo name="ECE 5780 Lab 7"/>
         </targetInfos>
       </component>
     </components>
